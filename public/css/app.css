@@ -1,0 +1,77 @@
+
+html {
+    overflow-y: scroll;
+}
+body {
+    background-attachment: scroll;
+    background-color: #000000;
+    background-image: url("../images/leafbg.png");
+    background-position: center top;
+    background-repeat: no-repeat;
+}
+p, ul, td, tr, div {
+    color: #cec2ad;
+    font-family: Georgia,"Times New Roman",Times,serif;
+    font-size: 12px;
+    font-weight: normal;
+    vertical-align: top;
+}
+h1 {
+    color: #47462a;
+    font-family: Georgia,"Times New Roman",Times,serif;
+    font-size: 26px;
+    font-weight: normal;
+    text-align: left;
+}
+h2 {
+    color: #8a6d2b;
+    display: inline;
+    font-family: Georgia,"Times New Roman",Times,serif;
+    font-size: 19px;
+    font-weight: normal;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+h3 {
+    color: #8a6d2b;
+    font-family: Georgia,"Times New Roman",Times,serif;
+    font-size: 11px;
+    font-weight: normal;
+    margin: 0;
+    padding: 0;
+}
+a:link, a:visited, a:active {
+    color: #8a6d2b;
+    outline: medium none;
+    text-decoration: none;
+}
+a:hover {
+    color: #a89166;
+    outline: medium none;
+    text-decoration: none;
+}
+a.footer:link, a.footer:visited, a.footer:active {
+    color: #3b3a23;
+    outline: medium none;
+    text-decoration: none;
+}
+a.footer:hover {
+    color: #86863f;
+    outline: medium none;
+    text-decoration: none;
+}
+img {
+    border: medium none;
+}
+img.gallery {
+    border: 1px solid #533d1c;
+    margin-bottom: 5px;
+    margin-right: 5px;
+}
+hr {
+    background-color: #8a6d2b;
+    border: medium none;
+    height: 1px;
+    margin-top: 30px;
+}
+
