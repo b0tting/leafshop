@@ -265,7 +265,7 @@ class WelcomeController extends Controller {
 					Mail::send('emails.kaatmail', ['order' => $order], function ($message) use ($order) {
 						$message->from(self::$shopmail, 'LEAF Music');
 						$message->subject('LEAF Music order number ' . $order->ordernumber . ' - paid');
-						$message->to($order->email);
+						$message->to(self::$shopmail);
 					});
 					$order->status = Order::STATUS_PAID;
 					$order->save();
