@@ -11,7 +11,7 @@
                 @else
                 <p style="word-wrap: break-word;">Thank you for your order! You should receive a mail with the payment details soon. When we receive your payment, we'll get right on to the packaging and send out everything as soon as possible!</p>
             @endif
-            <p>For questions relating to your order, feel free to contact us at {{ \App\Http\Controllers\WelcomeController::LEAFMAIL }}, please refer to your order number ({{ $order->ordernumber }}) in the subject.</p>
+            <p>If the e-mail fails to arrive, please check your spam folders. For questions relating to your order, feel free to contact us at {{ config('shop.shopcontactmail')}}, please refer to your order number ({{ $order->ordernumber }}) in the subject.</p>
             <p>For reference, here's your order once more:</p>
         </div>
         <div class="col-sm-8">

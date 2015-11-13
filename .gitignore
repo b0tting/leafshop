@@ -3,3 +3,4 @@
 /bootstrap/compiled.php
 /.idea
 .env
+/.env.example

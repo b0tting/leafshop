@@ -54,7 +54,7 @@ return [
 	|
 	*/
 
-	'from' => ['address' => \App\Http\Controllers\WelcomeController::LEAFMAIL, 'name' => "LEAF Music"],
+	'from' => ['address' => config("shop.shopmail"), 'name' => "LEAF Music"],
 
 	/*
 	|--------------------------------------------------------------------------

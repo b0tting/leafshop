@@ -6,6 +6,9 @@
         </div>
         <div class="col-sm-8">
             <p>So sorry to say, but there was a problem processing your Paypal request. You can try again, but consider trying an order using a bank payment</p>
+            @if (isset($problemdescription))
+            <p>Problem description: {{ $problemdescription }}</p>
+                @endif
         </div>
     </div>
 

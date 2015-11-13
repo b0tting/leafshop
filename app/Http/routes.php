@@ -17,7 +17,9 @@ Route::get('/review', 'WelcomeController@review');
 Route::post('/review', 'WelcomeController@review');
 Route::get('/submit/{ordernumer}', 'WelcomeController@submit');
 Route::get('/result/{ordernumer}', 'WelcomeController@result');
-Route::get('/paypalReturn/{result}/{ordernumber}', 'WelcomeController@paypalReturn');
+Route::get('/paypalReturn/{result}/{ordernumber}/', 'WelcomeController@paypalReturn');
+
+
 Route::get('/kaatview', 'WelcomeController@overview');
 Route::get('/kaatview/{ordernumber}', 'WelcomeController@acknowledgeSend');
 Route::get('/kaatview/delete/{ordernumber}', 'WelcomeController@delete');

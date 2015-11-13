@@ -2,11 +2,16 @@
 
 use App\OrderItem;
 use DB;
+use PayPal\Exception\PayPalConnectionException;
+use PhpSpec\Exception\Exception;
 use Validator;
 use Input;
 use Cookie;
 use Mail;
 use Redirect;
+use Config;
+use Request;
+use Log;
 use App\Item;
 use App\Order;
 use PayPal\Rest\ApiContext;
@@ -17,6 +22,7 @@ use PayPal\Api\Payment;
 use PayPal\Api\RedirectUrls;
 use PayPal\Api\ItemList;
 use PayPal\Api\ExecutePayment;
+use PayPal\Api\PaymentExecution;
 use PayPal\Api\Transaction;
 use PayPal\Auth\OAuthTokenCredential;
 
@@ -25,20 +31,19 @@ class WelcomeController extends Controller {
 	const PAYMENT_BANK = 1;
 	const PAYMENT_PAYPAL = 2;
 	const PAYMENT_METHODS = [self::PAYMENT_BANK=>"Money transfer", self::PAYMENT_PAYPAL=>"Paypal"];
+	//const PAYMENT_METHODS = [self::PAYMENT_BANK=>"Money transfer"];
 
 	const COUNTRIES = [""=>"","AR"=>"Argentina","AU"=>"Australia","AT"=>"Austria","BY"=>"Belarus","BE"=>"Belgium","BA"=>"Bosnia and Herzegovina","BR"=>"Brazil","BG"=>"Bulgaria","CA"=>"Canada","CL"=>"Chile","CN"=>"China","CO"=>"Colombia","CR"=>"Costa Rica","HR"=>"Croatia","CU"=>"Cuba","CY"=>"Cyprus","CZ"=>"Czech Republic","DK"=>"Denmark","DO"=>"Dominican Republic","EG"=>"Egypt","EE"=>"Estonia","FI"=>"Finland","FR"=>"France","GE"=>"Georgia","DE"=>"Germany","GI"=>"Gibraltar","GR"=>"Greece","HK"=>"Hong Kong S.A.R., China","HU"=>"Hungary","IS"=>"Iceland","IN"=>"India","ID"=>"Indonesia","IR"=>"Iran","IQ"=>"Iraq","IE"=>"Ireland","IL"=>"Israel","IT"=>"Italy","JM"=>"Jamaica","JP"=>"Japan","KZ"=>"Kazakhstan","KW"=>"Kuwait","KG"=>"Kyrgyzstan","LA"=>"Laos","LV"=>"Latvia","LB"=>"Lebanon","LT"=>"Lithuania","LU"=>"Luxembourg","MK"=>"Macedonia","MY"=>"Malaysia","MT"=>"Malta","MX"=>"Mexico","MD"=>"Moldova","MC"=>"Monaco","ME"=>"Montenegro","MA"=>"Morocco","NL"=>"Netherlands","NZ"=>"New Zealand","NI"=>"Nicaragua","KP"=>"North Korea","NO"=>"Norway","PK"=>"Pakistan","PS"=>"Palestinian Territory","PE"=>"Peru","PH"=>"Philippines","PL"=>"Poland","PT"=>"Portugal","PR"=>"Puerto Rico","QA"=>"Qatar","RO"=>"Romania","RU"=>"Russia","SA"=>"Saudi Arabia","RS"=>"Serbia","SG"=>"Singapore","SK"=>"Slovakia","SI"=>"Slovenia","ZA"=>"South Africa","KR"=>"South Korea","ES"=>"Spain","LK"=>"Sri Lanka","SE"=>"Sweden","CH"=>"Switzerland","TW"=>"Taiwan","TH"=>"Thailand","TN"=>"Tunisia","TR"=>"Turkey","UA"=>"Ukraine","AE"=>"United Arab Emirates","GB"=>"United Kingdom","US"=>"USA","UZ"=>"Uzbekistan","VN"=>"Vietnam"];
-
-	const LEAFMAIL = "leafofficial@gmail.com";
 
 	const PAYPAL_OK = 1;
 	const PAYPAL_PROBLEM = 2;
 
-	const NL_LIGHT = "2.52";
-	const NL_HEAVY = "3.84";
-	const BE_LIGHT = "5.25";
-	const BE_HEAVY = "9.45";
-	const ALL_LIGHT = "5.75";
-	const ALL_HEAVY = "10.35";
+	const NL_LIGHT = "3.60";
+	const NL_HEAVY = "6.80";
+	const BE_LIGHT = "6.90";
+	const BE_HEAVY = "13.60";
+	const ALL_LIGHT = "7.50";
+	const ALL_HEAVY = "14.70";
 
 	/*
 	|--------------------------------------------------------------------------
@@ -51,6 +56,8 @@ class WelcomeController extends Controller {
 	|
 	*/
 
+	static $shopmail = "";
+
 	/**
 	 * Create a new controller instance.
 	 *
@@ -59,6 +66,7 @@ class WelcomeController extends Controller {
 	public function __construct()
 	{
 		$this->middleware('guest');
+		self::$shopmail = config("shop.shopmail");
 	}
 
 	/**
@@ -140,15 +148,15 @@ class WelcomeController extends Controller {
 		$order = Order::where('ordernumber', "=", $ordernumber)->first();
 		if($order->payment_method == self::PAYMENT_BANK) {
 			Mail::send('emails.moneyorder', ['order' => $order], function ($message) use ($order) {
-				$message->from(self::LEAFMAIL, 'LEAF Music');
-				$message->subject('LEAF Music order number ' . $order->ordernumber);
-				$message->to(self::LEAFMAIL)->cc(self::LEAFMAIL);
+				$message->from(self::$shopmail, 'LEAF Music');
+				$message->subject('LEAF Music Order ' . $order->ordernumber . ' - waiting for payment');
+				$message->to($order->email)->bcc(self::$shopmail)->replyTo(self::$shopmail);
 			});
 
 			Mail::send('emails.kaatmail', ['order' => $order], function ($message) use ($order) {
-				$message->from(self::LEAFMAIL, 'LEAF Music');
-				$message->subject('LEAF Music order number ' . $order->ordernumber);
-				$message->to(self::LEAFMAIL)->cc(self::LEAFMAIL);
+				$message->from(self::$shopmail, 'LEAF Music');
+				$message->subject('LEAF Music Order ' . $order->ordernumber . ' - waiting for payment');
+				$message->to(self::$shopmail);
 			});
 			$order->status = Order::STATUS_WAITING;
 			$order->save();
@@ -205,22 +213,75 @@ class WelcomeController extends Controller {
 
 	}
 
-	public function paypalReturn($result, $ordernumber) {
+	public function paypalReturn($result, $ordernumber, $paymentId = null, $token = null, $PayerID = null) {
+		Log::info('Got a return URL call from Paypal I guess with result ' . $result . ' for order '. $ordernumber);
+
+
+		// MarkO: HORRIBLE! BAD!
+		// My htaccess works by adding sub urls as a query string to index.php. But the paypal code sends
+		// an additional query string so my solution breaks. This is a horrible hack to rebuild that.
+
+		$url =  $_SERVER['REQUEST_URI'];
+
+		if(str_contains($url, "paymentId")) {
+			$querystring = substr($url, strpos($url, "?") + 1);
+			Log::info("In horrible hack code, parsing " . $querystring);
+			parse_str($querystring);
+			Log::info("In horrible hack code, with paymentID " . $paymentId);
+		}
+		// End of bad, bad hack
+
+
 		$order = Order::where('ordernumber', "=", $ordernumber)->first();
 		if($result == self::PAYPAL_OK) {
-			Mail::send('emails.paypalokay', ['order' => $order], function ($message) use ($order) {
-				$message->from(self::LEAFMAIL, 'LEAF Music');
-				$message->subject('LEAF Music order number ' . $order->ordernumber);
-				$message->to(self::LEAFMAIL)->cc(self::LEAFMAIL);
-			});
+			$paypal_conf = \Config::get('paypal');
+			$api_context = new ApiContext(new OAuthTokenCredential($paypal_conf['client_id'], $paypal_conf['secret']));
+			$api_context->setConfig($paypal_conf['settings']);
 
-			Mail::send('emails.kaatmail', ['order' => $order], function ($message) use ($order) {
-				$message->from(self::LEAFMAIL, 'LEAF Music');
-				$message->subject('LEAF Music order number ' . $order->ordernumber);
-				$message->to(self::LEAFMAIL)->cc(self::LEAFMAIL);
-			});
-			$order->status = Order::STATUS_PAID;
-			$order->save();
+			if ($paymentId) {
+				Log::info("Paypal send us an okay for execution of payment " . $paymentId);
+			} else {
+				Log::error("Expected a payment ID in URL but there was not any");
+				return view('problem', ["order" => $order, "problemdescription" => 'Expected a payment ID in URL but there was not any']);
+			}
+			$payment = Payment::get($paymentId, $api_context);
+			$execution = new PaymentExecution();
+			$execution->setPayerId($PayerID );
+
+			try {
+				Log::info("Attempting to execute " . $paymentId . " for " . $PayerID );
+				$result = $payment->execute($execution, $api_context);
+				try {
+					Log::info("Got a good result after execution " . $result);
+					$payment = Payment::get($paymentId, $api_context);
+					Log::info("Got a good payment detail after " . $payment);
+
+					Mail::send('emails.paypalokay', ['order' => $order], function ($message) use ($order) {
+						$message->from(self::$shopmail, 'LEAF Music');
+						$message->subject('LEAF Music order number ' . $order->ordernumber . ' - paid');
+						$message->to($order->email)->bcc(self::$shopmail)->replyTo(self::$shopmail);
+					});
+
+					Mail::send('emails.kaatmail', ['order' => $order], function ($message) use ($order) {
+						$message->from(self::$shopmail, 'LEAF Music');
+						$message->subject('LEAF Music order number ' . $order->ordernumber . ' - paid');
+						$message->to($order->email);
+					});
+					$order->status = Order::STATUS_PAID;
+					$order->save();
+					Log::info("Updated order " . $order->id . " with an okay and paid for state");
+				} catch (Exception $e) {
+					Log::error('Payment result was not found for payment id ' . $paymentId);
+					return view('problem', ["order" => $order, "problemdescription" => 'Payment result was not found']);
+				}
+			} catch (PayPalConnectionException $ex) {
+				Log::error("Paypal error " . $ex->getCode());
+				Log::error("Paypal full" . $ex->getData());
+				return view('problem', ["order"=>$order, "problemdescription"=>'Payment execution failed for your payment ID']);
+			} catch (Exception $e) {
+				Log::error('Payment execution failed for ' . $paymentId);
+				return view('problem', ["order"=>$order, "problemdescription"=>'Payment execution failed for your payment ID']);
+			}
 			return Redirect::action('WelcomeController@result', [$order->ordernumber]);
 		} else {
 			return view('problem', ["order"=>$order]);
@@ -245,9 +306,9 @@ class WelcomeController extends Controller {
 		$order->status = Order::STATUS_SEND;
 		$order->save();
 		Mail::send('emails.sendokay', ['order' => $order], function ($message) use ($order) {
-			$message->from(self::LEAFMAIL, 'LEAF Music');
+			$message->from(self::$shopmail, 'LEAF Music');
 			$message->subject('Update on LEAF Music order number ' . $order->ordernumber);
-			$message->to($order->email)->cc(self::LEAFMAIL);
+            $message->to($order->email)->bcc(self::$shopmail)->replyTo(self::$shopmail);
 		});
 		return Redirect::action('WelcomeController@overview')->withErrors(['Order ' . $order->ordernumber . " is gemarkeerd als verzonden."]);
 	}

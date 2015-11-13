@@ -17,16 +17,53 @@
 		<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
 		<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 	<![endif]-->
+	<!-- MarkO: CSS IS NOOIT BEDOELD VOOR ONTWIKKELAARS. Godmiljaar. Wat een frustratie -->
 	<style>
+
+
+
 	.itemblock {
 		margin: 10px;
 	}
+
+	#nav {
+		position: relative;
+		right: -870px;
+		top: 80px;
+		width: 200px;
+		height: 200px;
+	}
+
+	#nav ul{
+		display: block;
+		margin: 0px;
+		padding: 0px;
+
+	}
+
+	#nav li{
+		margin: 0px;
+		top: 0px;
+		display: block;
+		line-height: 0px;
+	}
+
+	#nav ul li a {
+		line-height: 0px;
+		padding: 0px;
+		margin: 0px;
+	}
+
 
 	</style>
 </head>
 <body>
 	 <div class="container" style="margin:auto; margin-top: 5%; width: 1200px; align:left;">
-		<div class="contentcontainer" style="width: 760px;">
+		 <div id="nav">
+			 <ul>
+				 <li><a href="http://www.leaf-music.com/?p=content/home"><div style="height: 300px; width: 206px; margin: 0px; padding:0px; background: url('images/menu/diary_a.jpg') no-repeat;" alt=""></div><img src="images/menu/diary.jpg" alt="" /></a></li>
+			 </ul></div>
+	 <div class="contentcontainer" style="position: relative; width: 760px; top: -300px;">
 			@if ($errors->has())
 				<div class="alert alert-danger">
 					@foreach ($errors->all() as $error)
@@ -66,6 +103,7 @@
 
 			// Now redraw cart contents
 			fillCart(cart);
+			$(document).scrollTop($(document).height());
 		});
 		}
 
@@ -79,7 +117,7 @@
 	// Take shipping weight from all items and recalc shipping based on country
 	// Don't worry - we will recalc this server side to prevent people from messing here
 	// Bad thing: it's not easy to change costs like this. I should have done an ajax call
-	var shipping ={"NL":{'light': '2.52', 'heavy': '3.84'}, "BE":{'light':'5.25', 'heavy': '9.45'},"OTHER":{'light': '5.75', 'heavy': '10.35'}}
+	var shipping ={"NL":{'light': '3.60', 'heavy': '6.80'}, "BE":{'light':'6.90', 'heavy': '13.60'},"OTHER":{'light': '7.50', 'heavy': '14.70'}}
 	function recalcShipping() {
 		if(cart.country) {
 			cartRemove(-1);
@@ -214,8 +252,7 @@
 			});
 
 			if (totalamount > 0) {
-
-				carthtml += '<div class="col-md-12"><h2>Total amount: &euro; ' + totalamount.toFixed(2) + '</h2></div></div>';
+				carthtml += '<div class="col-md-12"><h2>Total amount: &euro; ' + totalamount.toFixed(2) + '</h2>&nbsp;<small>(including taxes and handling)</small></div></div>';
 				$("#nextstep").show()
 				$("#cart").html(carthtml);
 			} else {
@@ -232,6 +269,8 @@
 		fillCart(cart);
 	}
 
+	$('#nav li a div').css('opacity','0');
+	$('#nav li a div').css('display','block');
 
 </script>
 </body>

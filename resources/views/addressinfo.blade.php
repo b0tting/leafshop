@@ -77,7 +77,7 @@
 					<label class="col-sm-3 control-label" for="textinput">Payment method</label>
 					<div class="col-sm-9">
 						{!! Form::select('payment_method', \App\Http\Controllers\WelcomeController::PAYMENT_METHODS, '', ["id"=>"payment_method", "class"=>"form-control"]) !!}
-						<small>For now, we only accept money transfers</small>
+						<small>For now, we only accept money transfers and Paypal.</small>
 					</div>
 				</div>
 

@@ -11,7 +11,7 @@ return array(
         /**
          * Available option 'sandbox' or 'live'
          */
-        'mode' => 'sandbox',
+        'mode' => env('PAYPAL_STATE', 'sandbox'),
 
         /**
          * Specify the max request time in seconds

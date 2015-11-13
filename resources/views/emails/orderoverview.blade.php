@@ -70,7 +70,7 @@
     </tr>
 @endforeach
     <tr>
-        <td colspan="4"><h2>Total amount: &euro; {{ number_format($order->totalamount, 2, ",", ".")}}</h2></td>
+        <td colspan="4"><h2>Total amount: &euro; {{ number_format($order->totalamount, 2, ",", ".")}}</h2>&nbsp;<small>(including taxes and handling)</small></td>
     </tr>
     </tbody>
 </table>
